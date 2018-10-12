@@ -6,8 +6,11 @@ import (
 	"io"
 	"time"
 )
+const FILESMAX = 5
+const CHECKPERIOD = 5 // secs
 // Сущность, постоянно проверяющая рабочий каталог
 type FileChecker struct {
+	fname string;
 	ticker *time.Ticker 
 }
 // Функция добавляет один слайс в другой. Может, слишком велосипедно, но по-другому у меня не получилось
@@ -18,13 +21,14 @@ func appendWithFiles(oldFiles,newFiles []string) []string {
 	return oldFiles;
 }
 // Функция для получения текущего списка файлов рабочего каталога  
-func getFiles(workDir* os.File) ([]string, error) {
+func getFiles(workDir *os.File) ([]string, error) {
 	var oldFiles,curFiles []string;
 	var err error;
-	oldFiles = make([]string,0,10);
-	
-	for curFiles, err = workDir.Readdirnames(10);err == nil;oldFiles = appendWithFiles(oldFiles,curFiles) {
-		
+	oldFiles = make([]string,0,FILESMAX);
+	curFiles, err = workDir.Readdirnames(FILESMAX)
+	for err == nil {
+		oldFiles = appendWithFiles(oldFiles,curFiles)
+		curFiles, err = workDir.Readdirnames(FILESMAX)		
 	}
 	if err != io.EOF {
 		return nil,err
@@ -57,16 +61,16 @@ func errMsg(msg string, err error) {
 	log.Println(msg+err.Error());	
 }
 // Основная функция - регулярно проверяет рабочий каталог
-func (fc *FileChecker) Process(fname string) error {
+func (fc *FileChecker) Process() error {
 	var workDir *os.File
 	var err error
-	workDir, err = os.Open(fname);
+	workDir, err = os.Open(fc.fname);
 	if (err != nil) {
 		if !os.IsNotExist(err) {
 		 	errMsg("Some issue with work directory creating",err);
 		 	return err;
 		 }
-		 workDir, err = os.Create(fname);
+		 workDir, err = os.Create(fc.fname);
 		 if (err != nil) {
 		 	errMsg("Some issue with work directory creating",err);
 		 	return err;
@@ -76,7 +80,7 @@ func (fc *FileChecker) Process(fname string) error {
 	if err != nil {
 		return nil
 	}
-	fc.ticker = time.NewTicker(5*time.Second)
+	fc.ticker = time.NewTicker(CHECKPERIOD*time.Second)
 	for _ = range fc.ticker.C {
 		oldFiles := curFiles;
 		curFiles, err = checkThisDir(workDir, oldFiles)
