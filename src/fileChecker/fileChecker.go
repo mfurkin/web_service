@@ -4,14 +4,16 @@ import (
 	"log"
 	"os"
 	"io"
-	"time"
+	"net/http"
+	"path"
 )
 const FILESMAX = 5
-const CHECKPERIOD = 5 // secs
+const MAXBUF=1024
+// const CHECKPERIOD = 5 // secs
 // Сущность, постоянно проверяющая рабочий каталог
 type FileChecker struct {
 	fname string;
-	ticker *time.Ticker 
+//	ticker *time.Ticker 
 }
 // Функция добавляет один слайс в другой. Может, слишком велосипедно, но по-другому у меня не получилось
 func appendWithFiles(oldFiles,newFiles []string) []string {
@@ -60,49 +62,71 @@ func getFiles(fname *string) ([]string, error) {
 	}
 	return oldFiles,nil
 }
-
-// Основная функция данного пакета. Получает текущий списко файлов, сравнивает его с предыдущим и выдает наружу
-// свежий или предыдущий, если они не изменились
-
-func checkThisDir(fname *string,oldFiles []string) ([]string, error) {
-	var err error 
-	log.Println("checkThisDir work dir name: "+*fname)
-	curFiles, err := getFiles(fname)
-	if err != nil && err != io.EOF {
-		return nil,err
-	}
-	oldLen := len(oldFiles)
-	curLen := len(curFiles)
-	if oldLen != curLen {
-		return curFiles,nil
-	}
-	for i,d:= range oldFiles {
-		if d != curFiles[i] {
-			return curFiles, nil
-		}
-	}
-	return oldFiles,nil
+// Функция удаляет файл по запросу
+func (fc *FileChecker) RemoveFile(fname *string) error {
+	path := path.Join(fc.fname,*fname)
+	return os.Remove(path)
 }
+// Функция создаёт файл по запросу
+func (fc *FileChecker) CreateFile(fname *string, reader io.ReadCloser) error {
+	path := path.Join(fc.fname,*fname)
+	file, err := os.Create(path)
+	if err == nil {
+		var buf [MAXBUF]byte
+		bufRead := buf[0:]
+		n, err := reader.Read(bufRead)
+		if err == nil {
+			for n>0  {
+				buf2 := buf[0:n]
+				 _ , err = file.Write(buf2)
+				if err != nil {
+					log.Println("Ошибка записи: "+err.Error())
+					break
+				}
+				n, err = reader.Read(bufRead)
+				if err != nil && err != io.EOF {
+					log.Println("Ошибка чтения: "+err.Error())
+				}
+			}
+		}
+		reader.Close()
+		file.Close()
+	}
+	return err
+}
+
+func (fc *FileChecker) GetFile(fname *string, writer http.ResponseWriter) error {
+	path := path.Join(fc.fname,*fname)
+	file,err := os.Open(path)
+	defer file.Close()
+	if err == nil {
+		var buf [MAXBUF]byte
+		var n int;
+		bufRead := buf[0:]
+		n, err = file.Read(bufRead)
+		if err == nil {
+			 for n > 0 {
+			 	_,err = writer.Write(bufRead[0:n])
+			 	if err != nil {
+			 		if err == io.EOF {
+						err = nil
+					}			 		
+			 	 	break	
+			 	} 
+			 }
+		} 
+	}
+	return err;
+}
+// Функция получает текущий список файлов по запросу
+func (fc *FileChecker) GetFiles() ([]string, error) {
+	return getFiles(&fc.fname)
+}
+func NewFileChecker(aFname *string) FileChecker {
+	return FileChecker{fname:*aFname}
+}
+
 // Вспомогательная фунекция - пишет лшибки в лог
 func errMsg(msg string, err error) {
 	log.Println(msg+err.Error());	
-}
-// Основная функция - регулярно проверяет рабочий каталог
-func (fc *FileChecker) Process() error {
-
-	var err error
-	
-	curFiles, err := getFiles(&fc.fname)
-	if err != nil {
-		return nil
-	}
-	fc.ticker = time.NewTicker(CHECKPERIOD*time.Second)
-	for _ = range fc.ticker.C {
-		oldFiles := curFiles;
-		curFiles, err = checkThisDir(&fc.fname, oldFiles)
-		if err != nil {
-			errMsg("Error during file checking: ",err)
-		}
-	}
-	return nil;
 }

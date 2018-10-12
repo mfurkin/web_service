@@ -139,7 +139,7 @@ func copyFiles(files []string, fromDir *string, ToDir *string) error {
 func removeFile(dir *string, fname string) error {
 	path := path.Join(*dir,fname)
 	return os.Remove(path)
-}
+}/*
 func TestCheckThisDir1(t *testing.T) {
 	fname := "/home/mikhailf/web_work/workdir1"
 	fromDir := "/home/mikhailf/gotest_files"
@@ -170,3 +170,4 @@ func TestCheckThisDir1(t *testing.T) {
 	checkFileNamesTest(res5Files,allFiles[1:],t,"incorrect values checkThisDir 4")
 	defer afterTest(&fname,t)
 }
+*/
