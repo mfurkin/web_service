@@ -25,11 +25,20 @@ func getFiles(workDir *os.File) ([]string, error) {
 	var oldFiles,curFiles []string;
 	var err error;
 	oldFiles = make([]string,0,FILESMAX);
+	log.Println("getFiles name: "+workDir.Name())
 	curFiles, err = workDir.Readdirnames(FILESMAX)
+	if err != nil {
+		log.Println("getFiles error during readdirnames: "+err.Error())
+		return nil,err 
+	}
+	len1 := len(curFiles)
+	log.Printf("getFiles pt1 len1=%d\n",len1)
 	for err == nil {
 		oldFiles = appendWithFiles(oldFiles,curFiles)
 		curFiles, err = workDir.Readdirnames(FILESMAX)		
 	}
+	len2 := len(curFiles)	
+	log.Printf("getFiles pt2 len2=%d\n",len2)	
 	if err != io.EOF {
 		return nil,err
 	}
@@ -40,13 +49,16 @@ func getFiles(workDir *os.File) ([]string, error) {
 // свежий или предыдущий, если они не изменились
 func checkThisDir(workDir *os.File,oldFiles []string) ([]string, error) {
 	var err error 
+	pathName := workDir.Name()
+	log.Println("checkThisDir work dir name: "+pathName)
 	curFiles, err := getFiles(workDir)
 	if err != nil && err != io.EOF {
 		return nil,err
 	}
-	old_len := len(oldFiles)
-	cur_len := len(curFiles)
-	if old_len != cur_len {
+	oldLen := len(oldFiles)
+	curLen := len(curFiles)
+	log.Printf("checkThisDir old_len=%d cur_len=%d",oldLen,curLen)
+	if oldLen != curLen {
 		return curFiles,nil
 	}
 	for i,d:= range oldFiles {
