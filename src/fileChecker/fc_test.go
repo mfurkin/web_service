@@ -8,20 +8,13 @@ import (
 	"path"
     "testing"
 )
+
 func testErr(err error, msg string, t *testing.T) {
 	if (err != nil) {
 		log.Println(msg+": "+err.Error())
 		t.Fail()
 	}	
 }
-
-func beforeTest(fname *string, t *testing.T) (*os.File, error) {
-	var workDir, err = os.Open(*fname)
-	testErr(err,"Error during work dir opening",t);
-	return workDir, err
-}
-
-
 
 func afterTest(fname *string, t *testing.T) {
 	var workDir, err = os.Open(*fname)
@@ -67,7 +60,7 @@ func checkFileNames(resFiles,files []string) bool {
 	lenRes := len(resFiles)
 	len1 := len(files)
 	log.Printf("checkFileNames lenRes=%d len1=%d\n",lenRes,len1)
-//	if len(resFiles) == len(files) {
+
 	if lenRes == len1 {
 		res = true
 		for _,d := range files {
@@ -79,27 +72,7 @@ func checkFileNames(resFiles,files []string) bool {
 	}
 	return res;
 }
-/*
-func checkFilePath(fname string, dir* string) bool {
-	path := path.Join(*dir,fname)
-	_,err := os.Stat(path)
-	res := err == nil
-	log.Printf("%s = %t\n", path,res)	
-	return res;
-}
 
-func checkFilePaths(files []string, dir *string) bool {
-	var res bool 
-	log.Printf("checkFilePaths len=%d\n",len(files))
-	for _,d := range files {
-		res = checkFilePath(d,dir)
-		if !res {
-			break
-		}
-	}
-	return res;
-}
-*/
 func TestGetFilesEmptyDir(t *testing.T) {
 	fname := "/home/mikhailf/web_work/empty"
 	resFiles, err := getFiles(&fname)
@@ -151,7 +124,6 @@ func copyFile(file string, fromDir *string, ToDir *string) error {
 		log.Println("File "+srcFile+" copied successfully to "+dstFile)
 	}
 	return err
-//	return cmd.Run()
 }
 func copyFiles(files []string, fromDir *string, ToDir *string) error {
 	var err error
@@ -189,7 +161,12 @@ func TestCheckThisDir1(t *testing.T) {
 	err = copyFiles(allFiles[2:3],&fromDir,&fname)
 	testErr(err,"error in file copying 3",t)	
 	res4Files, err := checkThisDir(&fname,res3Files)
-	testErr(err,"error in checkThisDIr test 3",t)
+	testErr(err,"error in checkThisDir test 3",t)
 	checkFileNamesTest(res4Files,allFiles[1:3],t,"incorrect values checkThisDir 3")
+	err = copyFiles(allFiles[3:],&fromDir,&fname)
+	testErr(err,"error in cfile copying 4",t)
+	res5Files, err := checkThisDir(&fname,res4Files)
+	testErr(err,"error in checkThisDir 4",t)
+	checkFileNamesTest(res5Files,allFiles[1:],t,"incorrect values checkThisDir 4")
 	defer afterTest(&fname,t)
 }

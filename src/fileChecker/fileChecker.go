@@ -51,12 +51,10 @@ func getFiles(fname *string) ([]string, error) {
 		log.Println("getFiles error during readdirnames: "+err.Error())
 		return nil,err 
 	}
-	len1 := len(curFiles)
 	for err == nil {
 		oldFiles = appendWithFiles(oldFiles,curFiles)
 		curFiles, err = workDir.Readdirnames(FILESMAX)		
 	}
-	len2 := len(curFiles)	
 	if err != io.EOF {
 		return nil,err
 	}
