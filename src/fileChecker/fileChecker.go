@@ -104,15 +104,20 @@ func (fc *FileChecker) GetFile(fname *string, writer http.ResponseWriter) error 
 		var n int;
 		bufRead := buf[0:]
 		n, err = file.Read(bufRead)
-		if err == nil {
+		if err == nil {		
 			 for n > 0 {
 			 	_,err = writer.Write(bufRead[0:n])
 			 	if err != nil {
+			 					 		
+			 	 	break	
+			 	}
+			 	n, err = file.Read(bufRead)			 	
+			 	if err != nil {
 			 		if err == io.EOF {
 						err = nil
-					}			 		
-			 	 	break	
-			 	} 
+					}		
+			 		break	 		
+			 	}
 			 }
 		} 
 	}
